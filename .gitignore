@@ -1,3 +1,4 @@
 start.py
 *.pyc
 start.py
+__pycache__/start.cpython-38.pyc
