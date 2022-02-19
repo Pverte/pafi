@@ -15,6 +15,7 @@ For now, you can't invite the bot, because the code isn't at his 1.0 version, an
 
 - [x] Make the bot able to give informations with a deezer album link
 - [x] Make the bot able to give informations with a deezer track link
+- [x] Detect with a deezer.page.link link wich music is it
 - [ ] Make the bot able to give informations with a deezer artist link
 - [ ] Make the bot able to give informations with Spotify links
 - [ ] With /link the bot only gives links of the musics
