@@ -24,7 +24,7 @@ intents = discord.Intents(
 
 def deezerinfo(ctx):
     """
-    Input : Deezer Album link
+    Input : Deezer link
     Output : artist, artistimage, link, coverimage, albumname"""
     global artist,  artistimage, coverimage, albumname, title, bpm
     if "deezer.page.link" in ctx:
@@ -36,20 +36,27 @@ def deezerinfo(ctx):
     print(apilink)
     informations = requests.get(apilink)
     text = informations.json()
+    deezerinfo.link= text["link"]
     if "album" in apilink:
         artist = text["artist"]["name"]
         artistimage = text["artist"]["picture_medium"]
-        deezerinfo.link= text["link"]
+        deezerinfo.date = text["release_date"]
         coverimage = text["cover_medium"]
         albumname = text["title"]
     if "track" in apilink:
         artist = text["artist"]["name"]
         artistimage = text["artist"]["picture_medium"]
-        deezerinfo.link= text["link"]
+        deezerinfo.date = text["release_date"]
         coverimage = text["album"]["cover_medium"]
         title = text["title"]
         albumname = text["album"]["title"]
         bpm = text["bpm"]
+    if "artist" in apilink:
+        artist=text["name"]
+        artistimage=text["picture_medium"]
+        coverimage=text["picture_big"]
+        deezerinfo.nb_album=text["nb_album"]
+        deezerinfo.nb_fan=text["nb_fan"]
 
 def covercolor(coverurl):
     response = requests.get(coverurl)
@@ -80,8 +87,9 @@ async def on_ready():
 async def help(ctx):
     await ctx.respond("Hey!")
 
-@bot.slash_command(guild_ids=[694443902526029854], name="deezer", description="Let's find some Deezer Music.")
+@bot.slash_command(guild_ids=[694443902526029854], name="deezer", description="Let's find some Deezer Music !")
 async def deezer(ctx, link):
+    await ctx.defer()
     deezerinfo(link)
     print(deezerinfo.link)
     if "album" in deezerinfo.link:
@@ -99,6 +107,10 @@ async def deezer(ctx, link):
         e.add_field(
             name="Listen it here :",
             value=f"[Deezer]({deezerinfo.link})"
+        )
+        e.add_field(
+            name="Release date",
+            value =deezerinfo.date
         )
         e.add_field(
             name="\u200B",
@@ -131,6 +143,11 @@ async def deezer(ctx, link):
             value=bpm1,
             inline=True
         )
+        e.add_field(
+            name="Release date",
+            value =deezerinfo.date,
+            inline=True
+        )
         e.set_thumbnail(url=coverimage)
         e.add_field(
             name="Listen it here :",
@@ -143,6 +160,43 @@ async def deezer(ctx, link):
             inline=False
         )
         e.set_author(name= f"By {artist}", icon_url=artistimage)
+        await ctx.respond(embed=e)
+    elif "artist" in deezerinfo.link:
+        print(coverimage)
+        e = discord.Embed(
+            color = covercolor(coverimage),
+            )
+        e.add_field(
+            name="Artist",
+            value=artist,
+            inline=False
+        )
+        print(artist)
+        e.add_field(
+            name="Number of fans on Deezer",
+            value=deezerinfo.nb_fan,
+            inline= True
+        )
+        print(deezerinfo.nb_fan)
+        e.add_field(
+            name="Numbers of albums",
+            value=deezerinfo.nb_album,
+            inline=True
+        )
+        print(deezerinfo.nb_album)
+        e.set_thumbnail(url=coverimage)
+        e.add_field(
+            name="Listen it here :",
+            value=f"[Deezer]({deezerinfo.link})",
+            inline=False
+        )
+        print(deezerinfo.link)
+        e.add_field(
+            name="\u200B",
+            value="Bot by [Pverte](https://pverte.me)",
+            inline=False
+        )
+        e.set_author(name=artist, icon_url=artistimage)
         await ctx.respond(embed=e)
 @bot.slash_command(name='greet', description='Greet someone!', guild_ids=[694443902526029854])
 async def greet(ctx, name=''):
