@@ -1,6 +1,7 @@
 #Imports of the necessary libraries requests for web resquest, discord for the discord bot, json for formatting the informations received by the api
 import requests
 import discord
+from discord.ext import commands
 import json
 from io import BytesIO
 import numpy as np
@@ -76,8 +77,8 @@ def covercolor(coverurl):
     print(readableHex)
     return readableHex
 
-bot = discord.Bot()
-
+bot = discord.Bot(activity=discord.Game(name='Finding your music ! Find commands with /help'), intents=intents)
+#discord.ext.commands.Bot.remove_command('help')
 
 @bot.event
 async def on_ready():
@@ -97,10 +98,6 @@ async def on_application_command_error(ctx, error):
     description="AN ERROR JUST OCCURED, IT HAS BEEN SENT TO THE DEVELOPERS.")
     await errorschan.send(f"<@577089415369981952> an error just occured with the command {ctx.command} : {error}")
     await ctx.respond(embed=e)
-
-@bot.slash_command(guild_ids=[694443902526029854], name="help", description="Need help about the bot ? Send this command")
-async def help(ctx):
-    await ctx.respond("Hey!")
 
 @bot.slash_command(guild_ids=[694443902526029854], name="deezer", description="Let's find some Deezer Music !")
 async def deezer(ctx, link):
@@ -213,7 +210,32 @@ async def deezer(ctx, link):
         )
         e.set_author(name=artist, icon_url=artistimage)
         await ctx.respond(embed=e)
+
 @bot.slash_command(name='greet', description='Greet someone!', guild_ids=[694443902526029854])
 async def greet(ctx, name=''):
     await ctx.respond(f'Hello {name}!')
+
+@bot.slash_command(name='help', description='Get help about the bot', guild_ids=[694443902526029854])
+async def help(ctx):
+    e = discord.Embed(
+        color = discord.Colour.blue(),
+        title = "Help",
+        description="Here is the list of commands you can use with the bot :")
+    e.add_field(
+        name="/help",
+        value="Get the list of commands you can use with the bot",
+        inline=False
+    )
+    e.add_field(
+        name="/deezer",
+        value="Let's find some Deezer Music ! Enter a link to a Deezer album or a Deezer track, and the bot will send you the informations about it.",
+        inline=False
+    )
+    e.add_field(
+        name="/greet",
+        value="Greet someone! Enter the name of the person you want to greet, and the bot will greet you. (yeah it's a test)",
+        inline=False
+    )
+    e.set_author(name=f"By {pverte}", icon_url=pverte.avatar)
+    await ctx.respond(embed=e)
 bot.run(start.token)
