@@ -2,8 +2,6 @@
 import requests
 import discord
 import json
-from discord.ext import commands
-from discord.commands import Option
 from io import BytesIO
 import numpy as np
 import scipy
@@ -12,6 +10,7 @@ import scipy.cluster
 import binascii
 from PIL import Image
 import start
+import time
 
 NUM_CLUSTERS = 5
 
@@ -79,9 +78,25 @@ def covercolor(coverurl):
 
 bot = discord.Bot()
 
+
 @bot.event
 async def on_ready():
+    global pverte, errorschan
+    pverte = bot.get_user(577089415369981952)
+    errorschan = bot.get_channel(963776434428592198)
     print(f'We have logged in as {bot.user}')
+    await errorschan.send("Je suis prêt !")
+@bot.event
+async def on_application_command_error(ctx, error):
+    """
+    Send an error message telling the message that triggerer the error and the error itself into the errorschan
+    """
+    e = discord.Embed(
+    color = discord.Colour.red(),
+    title = "Error",
+    description="AN ERROR JUST OCCURED, IT HAS BEEN SENT TO THE DEVELOPERS.")
+    await errorschan.send(f"<@577089415369981952> an error just occured with the command {ctx.command} : {error}")
+    await ctx.respond(embed=e)
 
 @bot.slash_command(guild_ids=[694443902526029854], name="help", description="Need help about the bot ? Send this command")
 async def help(ctx):
