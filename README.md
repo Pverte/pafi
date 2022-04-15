@@ -31,6 +31,12 @@ $ python3 main.py
 # Invite the bot
 For now, you can't invite the bot, because the code isn't at his 1.0 version, and I don't have hosting solutions.
 
+## Features :
+- Give informations about a track, an album and an artist from a Deezer Link
+- While waiting the API to awnser, give fun facts about the music industry
+- Show link to differents music platforms for a music
+
+
 # TODO list
 
 - [x] Make the bot able to give informations with a deezer album link

@@ -29,7 +29,7 @@ intents = discord.Intents(
 
 def deezerinfo(ctx):
     """
-    Input : Deezer link
+    Input : Deezer lin
     Output : the artist name, the title and what type is it"""
     if "deezer.page.link" in ctx:
         ctx = requests.get(ctx).url
