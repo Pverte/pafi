@@ -1,0 +1,4 @@
+pycord
+spotipy
+requests
+Pillow
