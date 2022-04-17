@@ -20,7 +20,7 @@ $ cd Pverte
 ```
 Install dependances (Work on Python 3.0 btw) :
 ```console
-$ pip install requirements.txt
+$ pip install -r requirements.txt
 ```
 Start the bot :
 ```console
