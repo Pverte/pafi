@@ -3,3 +3,4 @@ start.py
 start.py
 __pycache__/start.cpython-38.pyc
 .cache
+.env

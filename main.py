@@ -1,4 +1,6 @@
 #Imports of the necessary libraries requests for web resquest, discord for the discord bot, json for formatting the informations received by the api
+from errno import errorcode
+from sys import prefix
 import traceback
 import requests
 import discord
@@ -15,11 +17,17 @@ import start
 import time
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-client_credentials_manager = SpotifyClientCredentials(client_id=start.client_id, client_secret=start.client_secret)
-sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-
+from dotenv import load_dotenv
+import os
+import sys
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 NUM_CLUSTERS = 5
 
+client_credentials_manager = SpotifyClientCredentials(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 intents = discord.Intents(
     guilds=True,
@@ -29,7 +37,7 @@ intents = discord.Intents(
 
 def deezerinfo(ctx):
     """
-    Input : Deezer lin
+    Input : Deezer link
     Output : the artist name, the title and what type is it"""
     if "deezer.page.link" in ctx:
         ctx = requests.get(ctx).url
@@ -40,19 +48,22 @@ def deezerinfo(ctx):
     print(apilink)
     informations = requests.get(apilink)
     text = informations.json()
+    if "error" in text:
+        print("Error in the link")
+        return 1, text["error"]["code"], "", "deezer"
     deezerinfo.link= text["link"]
     if "album" in apilink:
-        artist = text["artist"]["name"]
-        title = text["title"]
-        what = "album"
+            artist = text["artist"]["name"]
+            title = text["title"]
+            what = "album"
     if "track" in apilink:
-        artist = text["artist"]["name"]
-        title = text["title"]
-        what = "track"
+            artist = text["artist"]["name"]
+            title = text["title"]
+            what = "track"
     if "artist" in apilink:
-        artist=text["name"]
-        what = "artist"
-        title = text["name"]
+            artist=text["name"]
+            what = "artist"
+            title = text["name"]
     return artist, what, title, "deezer"
 
 def deezerlink(name, what, title):
@@ -91,7 +102,12 @@ def spotifyinfo(ctx):
     spotifyinfo.link=requests["external_urls"]["spotify"]
     return artist, what, title, "spotify"
 
+
+
 def getinfosfromspotifyapi(artist, what, title, platform):
+    if artist==1 and platform=="deezer":
+        print("Received the error " + str(what) + " From Deezer")
+        return {"error": what}
     if what == "track":
         if platform == "spotify":
             results=sp.track(title)
@@ -204,7 +220,7 @@ def covercolor(coverurl):
     return readableHex
 
 
-bot = discord.Bot(intents=intents)
+bot = discord.Bot(command_prefix='aa', intents=intents)
 
 @bot.event
 async def on_ready():
@@ -238,6 +254,17 @@ async def deezer(ctx, link):
     await ctx.respond(content="I'm looking for the informations about the music, please wait", embed=e)
     print(deezerinfo(link))
     infos = getinfosfromspotifyapi(*(deezerinfo(link)))
+    if "error" in infos:
+        file = discord.File("error.png")
+        print("hey error !")
+        errcode = infos["error"]
+        e= discord.Embed(
+        title="Error",
+        description=start.error[errcode],
+        color=discord.Colour.red())
+        e.set_thumbnail(url="attachment://error.png")
+        await ctx.edit(file=file, content="An error just occured with Deezer's API", embed=e)
+        return
     if "album" in deezerinfo.link:
         print(link)
         print(infos["cover"])
@@ -333,6 +360,9 @@ async def spotify(ctx, link):
         color=0x00ff00)
     await ctx.respond(content="I'm looking for the informations about the music, please wait", embed=e)
     infos = getinfosfromspotifyapi(*(spotifyinfo(link)))
+    if infos == "error":
+        await ctx.respond("Sorry, I couldn't find the music you asked for, please try again")
+        return
     if "album" in spotifyinfo.link:
         print(link)
         print(infos["cover"])
@@ -473,4 +503,33 @@ async def invite(ctx):
     )
     e.set_author(name=f"By {pverte}", icon_url=pverte.avatar)
     await ctx.respond(embed=e)
-bot.run(start.token)
+
+@bot.command(name="broadcast", description="Broadcast a message to all the servers the bot is in", guild_ids=[694443902526029854])
+async def broadcast(ctx, *, message, color=52152219):
+    sucess = 0
+    if ctx.author.id == 577089415369981952:
+        print("Broadcast en cours avec en message : " + message)
+        """Broadcast a message to all the servers the bot is in. Command only for Pverte"""
+        for guild in bot.guilds:
+            print("Envoi du message à " + guild.name)
+            for channel in guild.channels:
+                if channel.type == discord.ChannelType.text:
+                    try:
+                        e = discord.Embed(
+                            color = discord.Color.from_rgb(int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)),
+                            title = "Announcement from Pverte !",
+                            description=message
+                        )
+                        e.set_author(name=f"Message from Pverte  !", icon_url=pverte.avatar)
+                        e.set_footer(text=f"If you want to disable these announcements, use the command /settings disable-announcements")
+                        await channel.send(embed=e)
+                        print("Message envoyé à " + guild.name + " dans le channel " + channel.name + " Success !")
+                        sucess = sucess + 1
+                    except Exception:
+                        print("Message non envoyé à " + guild.name + " dans le channel " + channel.name + " Fail !")
+                        continue
+                    else:
+                        break
+        await ctx.respond(f"{sucess} message(s) envoyé(s) !")
+
+bot.run(TOKEN)
