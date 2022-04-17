@@ -1,12 +1,13 @@
 # Pafi
 Pafi is a Discord that when you send him a spotify, deezer (only deezer and spotify for now) or soundcloud, he return all the information and links to listen it in other streaming platforms.
 
-# How it's working
+# How to use
 Simply /spotify or /deezer with the link of the song, of the album or of the artist and Pafi will return the informations.
 
 ## Features :
-- Return all the informations about the music from the spotify API from deezer and spotify
-- Return all the links to listen the music
+- Give informations about a track, an album and an artist from a Deezer Link
+- While waiting the API to awnser, give fun facts about the music industry
+- Show the links to listen to the music on other streaming platforms
 
 
 # Contributing :
@@ -31,10 +32,7 @@ $ python3 main.py
 # Invite the bot
 For now, you can't invite the bot, because the code isn't at his 1.0 version, and I don't have hosting solutions.
 
-## Features :
-- Give informations about a track, an album and an artist from a Deezer Link
-- While waiting the API to awnser, give fun facts about the music industry
-- Show link to differents music platforms for a music
+
 
 
 # TODO list

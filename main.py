@@ -260,10 +260,10 @@ async def deezer(ctx, link):
         errcode = infos["error"]
         e= discord.Embed(
         title="Error",
-        description=start.error[errcode],
+        description="Error : "+str(errcode)+", "+start.error[errcode],
         color=discord.Colour.red())
         e.set_thumbnail(url="attachment://error.png")
-        await ctx.edit(file=file, content="An error just occured with Deezer's API", embed=e)
+        await ctx.edit(file=file, content="An error just occured :", embed=e)
         return
     if "album" in deezerinfo.link:
         print(link)
