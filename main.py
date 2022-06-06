@@ -43,6 +43,9 @@ def deezerinfo(ctx):
         ctx = requests.get(ctx).url
     if "?" in ctx:
         ctx = ctx.split("?", 1)[0]
+    if "deezer" not in ctx:
+        print("bad link")
+        return 1, "wrong-link-deezer", "", "deezer"
     apilink = ctx.split("/")[-2:]
     apilink = "https://api.deezer.com/" + apilink[0] + "/" + apilink[1]
     print(apilink)
@@ -84,6 +87,9 @@ def spotifyinfo(ctx):
     if "?" in ctx:
         ctx = ctx.split("?", 1)[0]
     print(ctx)
+    if "spotify" not in ctx:
+        print("bad link")
+        return 1, "wrong-link-spotify", "", "spotify"
     if "album" in ctx:
         requests = sp.album(ctx)
         artist = requests["artists"][0]["name"]
@@ -105,8 +111,8 @@ def spotifyinfo(ctx):
 
 
 def getinfosfromspotifyapi(artist, what, title, platform):
-    if artist==1 and platform=="deezer":
-        print("Received the error " + str(what) + " From Deezer")
+    if artist==1:
+        print("Received the error " + str(what) + " From " + platform)
         return {"error": what}
     if what == "track":
         if platform == "spotify":
@@ -140,7 +146,7 @@ def getinfosfromspotifyapi(artist, what, title, platform):
     if what == "album":
         if platform == "spotify":
             results=sp.album(title)
-            info= {
+            infos= {
                 "name": results["name"],
                 "artist": results["artists"][0]["name"],
                 "cover": results["images"][0]["url"],
@@ -231,21 +237,40 @@ async def on_ready():
     await errorschan.send("Je suis prêt !")
     #while True:
     print("updated the number of servers to " + str(len(bot.guilds)))
-    await bot.change_presence(activity=discord.Game(name='Finding your music ! Find commands with /help | '+ str(len(bot.guilds)) + " servers"))
+    await bot.change_presence(activity=discord.Game(name='Version 0.2 || Finding your music ! Find commands with /help | '+ str(len(bot.guilds)) + " servers"))
         #await time.sleep(3600)
 @bot.event
 async def on_application_command_error(ctx, error):
     """
     Send an error message telling the message that triggerer the error and the error itself into the errorschan
     """
+    if isinstance(error, commands.CommandOnCooldown):
+            em = discord.Embed(title=f"Slow it down !",description=f"Try again in {error.retry_after:.2f}s.", color=discord.Color.red())
+            await ctx.send(embed=em)
+            return
+    if isinstance(error, spotipy.client.SpotifyException):
+        if error.http_status == 401 or 403:
+            await ctx.send("Oops token issue, please tell Pverte to fix it.")
+            return
+        if error.http_status == 404:
+            await ctx.send("This music doesn't exist.")
+            return
+        if error.http_status == 429:
+            await ctx.send("You're doing too much. Try again in a few seconds.")
+            return
+        if error.http_status == 500 or 502 or 503 or 504:
+            await ctx.send("The server is down. Try again later.")
+            return
     e = discord.Embed(
     color = discord.Colour.red(),
     title = "Error",
     description="AN ERROR JUST OCCURED, IT HAS BEEN SENT TO THE DEVELOPERS.")
+    e.set_footer(text="Pverte don't know how to code, always making errors, I did anything it's his fault.")
     await errorschan.send(f"<@577089415369981952> an error just occured with the command {ctx.command} : {error}")
     await ctx.edit(embed=e)
 
-@bot.slash_command(guild_ids=[694443902526029854], name="deezer", description="Let's find some Deezer Music !")
+@commands.cooldown(1, 10, commands.BucketType.user)
+@bot.slash_command(name="deezer", description="Let's find some Deezer Music !")
 async def deezer(ctx, link):
     e = discord.Embed(
         title="While I'm looking for the informations about the music, here a fact about music : ",
@@ -351,7 +376,8 @@ async def deezer(ctx, link):
     time.sleep(1)
     await ctx.edit(content="", embed=e)
 
-@bot.slash_command(guild_ids=[694443902526029854], name="spotify", description="Let's find some Spotify Music !")
+@commands.cooldown(1, 10, commands.BucketType.user)
+@bot.slash_command(name="spotify", description="Let's find some Spotify Music !")
 async def spotify(ctx, link):
     print("Entered the spotify function")
     e = discord.Embed(
@@ -359,57 +385,65 @@ async def spotify(ctx, link):
         description=start.facts[np.random.randint(0, len(start.facts))],
         color=0x00ff00)
     await ctx.respond(content="I'm looking for the informations about the music, please wait", embed=e)
-    infos = getinfosfromspotifyapi(*(spotifyinfo(link)))
-    if infos == "error":
-        await ctx.respond("Sorry, I couldn't find the music you asked for, please try again")
+    info = getinfosfromspotifyapi(*(spotifyinfo(link)))
+    if "error" in info:
+        file = discord.File("error.png")
+        print("hey error !")
+        errcode = info["error"]
+        e= discord.Embed(
+        title="Error",
+        description="Error : "+str(errcode)+", "+start.error[errcode],
+        color=discord.Colour.red())
+        e.set_thumbnail(url="attachment://error.png")
+        await ctx.edit(file=file, content="An error just occured :", embed=e)
         return
     if "album" in spotifyinfo.link:
         print(link)
-        print(infos["cover"])
+        print(info["cover"])
         e = discord.Embed(
-            color = covercolor(infos["cover"]),
+            color = covercolor(info["cover"]),
             )
         e.add_field(
             name="Album name",
-            value=infos["name"],
+            value=info["name"],
             inline= False
         )
-        e.set_thumbnail(url=infos["cover"])
+        e.set_thumbnail(url=info["cover"])
         e.add_field(
             name="Listen it here :",
             value=f"[Spotify]({spotifyinfo.link})"
         )
         e.add_field(
             name="Release date",
-            value =infos["date"]
+            value =info["date"]
         )
         e.add_field(
             name="\u200B",
             value="Bot by [Pverte](https://pverte.me)",
             inline=False
         )
-        e.set_author(name="By " + infos["artist"], icon_url=(infos["artistcover"]))
+        e.set_author(name="By " + info["artist"], icon_url=(info["artistcover"]))
     elif "track" in spotifyinfo.link:
-        print(infos["cover"])
+        print(info["cover"])
         e = discord.Embed(
-            color = covercolor(infos["cover"]),
+            color = covercolor(info["cover"]),
             )
         e.add_field(
             name="Title",
-            value=infos["name"],
+            value=info["name"],
             inline=False
         )
         e.add_field(
             name="Album name",
-            value=infos["album"],
+            value=info["album"],
             inline= True
         )
         e.add_field(
             name="Release date",
-            value =infos["date"],
+            value =info["date"],
             inline=True
         )
-        e.set_thumbnail(url=infos["cover"])
+        e.set_thumbnail(url=info["cover"])
         e.add_field(
             name="Listen it here :",
             value=f"[Spotify]({spotifyinfo.link})",
@@ -420,23 +454,23 @@ async def spotify(ctx, link):
             value="Bot by [Pverte](https://pverte.me)",
             inline=False
         )
-        e.set_author(name= f"By " + infos["artist"], icon_url=(infos["artistcover"]))
+        e.set_author(name= f"By " + info["artist"], icon_url=(info["artistcover"]))
     elif "artist" in spotifyinfo.link:
-        print(infos["cover"])
+        print(info["cover"])
         e = discord.Embed(
-            color = covercolor(infos["cover"]),
+            color = covercolor(info["cover"]),
             )
         e.add_field(
             name="Artist",
-            value=infos["name"],
+            value=info["name"],
             inline=False
         )
         e.add_field(
             name="Number of fans on Spotify",
-            value=infos["followers"],
+            value=info["followers"],
             inline= True
         )
-        e.set_thumbnail(url=infos["cover"])
+        e.set_thumbnail(url=info["cover"])
         e.add_field(
             name="Listen it here :",
             value=f"[Spotify]({spotifyinfo.link})",
@@ -447,15 +481,12 @@ async def spotify(ctx, link):
             value="Bot by [Pverte](https://pverte.me)",
             inline=False
         )
-        e.set_author(name=infos["name"], icon_url=(infos["cover"]))
+        e.set_author(name=info["name"], icon_url=(info["cover"]))
     time.sleep(4)
     await ctx.edit(content="", embed=e)
 
-@bot.slash_command(name='greet', description='Greet someone!', guild_ids=[694443902526029854])
-async def greet(ctx, name=''):
-    await ctx.respond(f'Hello {name}!')
-
-@bot.slash_command(name='help', description='Get help about the bot', guild_ids=[694443902526029854])
+@commands.cooldown(1, 10, commands.BucketType.user)
+@bot.slash_command(name='help', description='Get help about the bot')
 async def help(ctx):
     e = discord.Embed(
         color = discord.Colour.blue(),
@@ -490,7 +521,8 @@ async def help(ctx):
 
     await ctx.respond(embed=e)
 
-@bot.slash_command(name="invite", description="Get the link to invite the bot to your server", guild_ids=[694443902526029854])
+@commands.cooldown(1, 10, commands.BucketType.user)
+@bot.slash_command(name="invite", description="Get the link to invite the bot to your server")
 async def invite(ctx):
     e = discord.Embed(
         color = discord.Colour.blue(),
@@ -504,6 +536,7 @@ async def invite(ctx):
     e.set_author(name=f"By {pverte}", icon_url=pverte.avatar)
     await ctx.respond(embed=e)
 
+@commands.cooldown(1, 10, commands.BucketType.user)
 @bot.command(name="broadcast", description="Broadcast a message to all the servers the bot is in", guild_ids=[694443902526029854])
 async def broadcast(ctx, *, message, color=52152219):
     sucess = 0
