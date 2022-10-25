@@ -1,6 +1,5 @@
-start.py
+copilot.py
 *.pyc
-start.py
 __pycache__/start.cpython-38.pyc
 .cache
 .env

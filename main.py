@@ -1,11 +1,9 @@
 #Imports of the necessary libraries requests for web resquest, discord for the discord bot, json for formatting the informations received by the api
-from errno import errorcode
-from sys import prefix
-import traceback
 import requests
 import discord
 from discord.ext import commands
 import json
+#For the color of the embed depending of the cover of the music
 from io import BytesIO
 import numpy as np
 import scipy
@@ -13,23 +11,26 @@ import scipy.misc
 import scipy.cluster
 import binascii
 from PIL import Image
-import start
+
+import miscs #import miscs file with the facts, and the errors codes
 import time
-import spotipy
+import spotipy #import spotipy module for the spotify api
 from spotipy.oauth2 import SpotifyClientCredentials
-from dotenv import load_dotenv
-import os
+from dotenv import load_dotenv #To import the token of the bot
+import os #For acessing files
 import sys
-load_dotenv()
+
+load_dotenv() #load the token of the bot
 TOKEN = os.getenv('DISCORD_TOKEN')
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-NUM_CLUSTERS = 5
+NUM_CLUSTERS = 5 #Number of colors to be extracted from the cover
+user_admin_id = 577089415369981952 #The id of the admin, can be changed
 
-client_credentials_manager = SpotifyClientCredentials(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+client_credentials_manager = SpotifyClientCredentials(client_id=CLIENT_ID, client_secret=CLIENT_SECRET) #acess to the credentials for spotify api
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
-intents = discord.Intents(
+intents = discord.Intents( #Discord intents
     guilds=True,
     members=True,
     messages=True,
@@ -202,7 +203,7 @@ def waiting(ctx):
     """
     e = discord.Embed(
         title="While I'm looking for the informations about the music, here a fact about music : ",
-        description=start.facts[np.random.randint(0, len(start.facts))],
+        description=miscs.facts[np.random.randint(0, len(miscs.facts))],
         color=0x00ff00)
 
 
@@ -231,7 +232,7 @@ bot = discord.Bot(command_prefix='aa', intents=intents)
 @bot.event
 async def on_ready():
     global pverte, errorschan
-    pverte = bot.get_user(577089415369981952)
+    pverte = bot.get_user(user_admin_id)
     errorschan = bot.get_channel(963776434428592198)
     print(f'We have logged in as {bot.user}')
     await errorschan.send("Je suis prêt !")
@@ -266,7 +267,7 @@ async def on_application_command_error(ctx, error):
     title = "Error",
     description="AN ERROR JUST OCCURED, IT HAS BEEN SENT TO THE DEVELOPERS.")
     e.set_footer(text="Pverte don't know how to code, always making errors, I did anything it's his fault.")
-    await errorschan.send(f"<@577089415369981952> an error just occured with the command {ctx.command} : {error}")
+    await errorschan.send(f"<@user_admin_id> an error just occured with the command {ctx.command} : {error}")
     await ctx.edit(embed=e)
 
 @commands.cooldown(1, 10, commands.BucketType.user)
@@ -274,7 +275,7 @@ async def on_application_command_error(ctx, error):
 async def deezer(ctx, link):
     e = discord.Embed(
         title="While I'm looking for the informations about the music, here a fact about music : ",
-        description=start.facts[np.random.randint(0, len(start.facts))],
+        description=miscs.facts[np.random.randint(0, len(miscs.facts))],
         color=0x00ff00)
     await ctx.respond(content="I'm looking for the informations about the music, please wait", embed=e)
     print(deezerinfo(link))
@@ -285,7 +286,7 @@ async def deezer(ctx, link):
         errcode = infos["error"]
         e= discord.Embed(
         title="Error",
-        description="Error : "+str(errcode)+", "+start.error[errcode],
+        description="Error : "+str(errcode)+", "+miscs.error[errcode],
         color=discord.Colour.red())
         e.set_thumbnail(url="attachment://error.png")
         await ctx.edit(file=file, content="An error just occured :", embed=e)
@@ -382,7 +383,7 @@ async def spotify(ctx, link):
     print("Entered the spotify function")
     e = discord.Embed(
         title="While I'm looking for the informations about the music, here a fact about music : ",
-        description=start.facts[np.random.randint(0, len(start.facts))],
+        description=miscs.facts[np.random.randint(0, len(miscs.facts))],
         color=0x00ff00)
     await ctx.respond(content="I'm looking for the informations about the music, please wait", embed=e)
     info = getinfosfromspotifyapi(*(spotifyinfo(link)))
@@ -392,7 +393,7 @@ async def spotify(ctx, link):
         errcode = info["error"]
         e= discord.Embed(
         title="Error",
-        description="Error : "+str(errcode)+", "+start.error[errcode],
+        description="Error : "+str(errcode)+", "+miscs.error[errcode],
         color=discord.Colour.red())
         e.set_thumbnail(url="attachment://error.png")
         await ctx.edit(file=file, content="An error just occured :", embed=e)
@@ -538,9 +539,13 @@ async def invite(ctx):
 
 @commands.cooldown(1, 10, commands.BucketType.user)
 @bot.command(name="broadcast", description="Broadcast a message to all the servers the bot is in", guild_ids=[694443902526029854])
-async def broadcast(ctx, *, message, color=52152219):
-    sucess = 0
-    if ctx.author.id == 577089415369981952:
+async def broadcast(ctx, *, message, color="52152219"):
+    """In case the user want to change the color of the embed, he can add a color code after the message"""
+    color1 = int(color[0:2], 16) #more readable
+    color2 = int(color[2:5], 16) #same
+    color3 = int(color[5:7], 16) #same
+    sucess = 0 #number of servers the bot has sent the message to
+    if ctx.author.id == user_admin_id: #if the user is the admin
         print("Broadcast en cours avec en message : " + message)
         """Broadcast a message to all the servers the bot is in. Command only for Pverte"""
         for guild in bot.guilds:
@@ -549,7 +554,7 @@ async def broadcast(ctx, *, message, color=52152219):
                 if channel.type == discord.ChannelType.text:
                     try:
                         e = discord.Embed(
-                            color = discord.Color.from_rgb(int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)),
+                            color = discord.Color.from_rgb(color1, color2, color3),
                             title = "Announcement from Pverte !",
                             description=message
                         )
@@ -558,11 +563,11 @@ async def broadcast(ctx, *, message, color=52152219):
                         await channel.send(embed=e)
                         print("Message envoyé à " + guild.name + " dans le channel " + channel.name + " Success !")
                         sucess = sucess + 1
-                    except Exception:
-                        print("Message non envoyé à " + guild.name + " dans le channel " + channel.name + " Fail !")
+                    except Exception as e: 
+                        print(e)
                         continue
                     else:
                         break
         await ctx.respond(f"{sucess} message(s) envoyé(s) !")
 
-bot.run(TOKEN)
+bot.run(TOKEN) # Run the bot
